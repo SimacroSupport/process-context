@@ -6,3 +6,5 @@ dist-ssr
 count.txt
 .env
 package-lock.json
+.idea
+.tanstack
