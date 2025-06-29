@@ -1,6 +1,6 @@
 {
-  "short_name": "TanStack App",
-  "name": "ProcessScope",
+  "short_name": "Process Context",
+  "name": "ProcessContext",
   "icons": [
     {
       "src": "favicon.ico",
