@@ -9,7 +9,7 @@ import {
   pfdNodes,
   equipmentNodes,
   lineNodes,
-  streamNodes,
+  // streamNodes,
   blockNodes,
   tagNodes,
   imageMap,
@@ -28,7 +28,7 @@ const graphLinks = buildGraphLinks(
     pfdNodes,
     equipmentNodes,
     lineNodes,
-    streamNodes,
+    // streamNodes,
     blockNodes,
     tagNodes
 );

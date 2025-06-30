@@ -4,7 +4,7 @@ import {
     type PfdNode,
     type EquipmentNode,
     type LineNode,
-    type StreamNode,
+    // type StreamNode,
     type BlockNode,
     type TagNode,
 } from '../data/processData';
@@ -17,7 +17,7 @@ export function buildGraphLinks(
     pfdNodes: PfdNode[],
     equipmentNodes: EquipmentNode[],
     lineNodes: LineNode[],
-    streamNodes: StreamNode[],
+    // streamNodes: StreamNode[],
     blockNodes: BlockNode[],
     tagNodes: TagNode[]
 ): GraphLink[] {
