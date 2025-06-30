@@ -9,12 +9,12 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as PfdGraphRouteImport } from './routes/pfd-graph'
+import { Route as ContextProcessRouteImport } from './routes/context-process'
 import { Route as IndexRouteImport } from './routes/index'
 
-const PfdGraphRoute = PfdGraphRouteImport.update({
-  id: '/pfd-graph',
-  path: '/pfd-graph',
+const ContextProcessRoute = ContextProcessRouteImport.update({
+  id: '/context-process',
+  path: '/context-process',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -25,37 +25,37 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/pfd-graph': typeof PfdGraphRoute
+  '/context-process': typeof ContextProcessRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/pfd-graph': typeof PfdGraphRoute
+  '/context-process': typeof ContextProcessRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/pfd-graph': typeof PfdGraphRoute
+  '/context-process': typeof ContextProcessRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/pfd-graph'
+  fullPaths: '/' | '/context-process'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/pfd-graph'
-  id: '__root__' | '/' | '/pfd-graph'
+  to: '/' | '/context-process'
+  id: '__root__' | '/' | '/context-process'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  PfdGraphRoute: typeof PfdGraphRoute
+  ContextProcessRoute: typeof ContextProcessRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/pfd-graph': {
-      id: '/pfd-graph'
-      path: '/pfd-graph'
-      fullPath: '/pfd-graph'
-      preLoaderRoute: typeof PfdGraphRouteImport
+    '/context-process': {
+      id: '/context-process'
+      path: '/context-process'
+      fullPath: '/context-process'
+      preLoaderRoute: typeof ContextProcessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -70,7 +70,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  PfdGraphRoute: PfdGraphRoute,
+  ContextProcessRoute: ContextProcessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

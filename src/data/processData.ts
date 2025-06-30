@@ -24,11 +24,10 @@ export interface StreamNode extends BaseNode {
     to?: string;              // 도착 장치명
 }
 
-
 export interface EquipmentNode extends BaseNode {
     id: string;
     type: 'equipment';
-    model: string;
+    modelType: string;
     equipmentId: string;
     description: string;
     blocks?: string[]; // 연결된 Block ID들
@@ -44,7 +43,6 @@ export interface EquipmentNode extends BaseNode {
 export interface BlockNode extends BaseNode {
     id: string;              // Block ID (예: HE101)
     type: 'block';           // 고정 값
-    unitId: string;          // 설비에 해당하는 Unit ID
     blockType: string;       // 예: 'Heater', 'Separator'
     inletIds: string[];      // 연결된 Inlet Stream ID 목록
     outletIds: string[];     // 연결된 Outlet Stream ID 목록
@@ -515,7 +513,7 @@ export const equipmentNodes: EquipmentNode[] = [
     {
         id: '864-U-1101A/B',
         type: 'equipment',
-        model: 'Vessel',
+        modelType: 'Vessel',
         equipmentId: '864-U-1101A/B',
         pfd: 'BA-344715',
         pid: 'A',
@@ -525,7 +523,7 @@ export const equipmentNodes: EquipmentNode[] = [
     {
         id: '864-C-1101',
         type: 'equipment',
-        model: 'Tray Column',
+        modelType: 'Tray Column',
         equipmentId: '864-C-1101',
         capacity: '-',
         material: 'CS+SS (예상)',
@@ -539,7 +537,7 @@ export const equipmentNodes: EquipmentNode[] = [
     {
         id: '864-D-1101',
         type: 'equipment',
-        model: 'Vessel',
+        modelType: 'Vessel',
         equipmentId: '864-D-1101',
         pfd: 'BA-344715',
         pid: 'A',
@@ -548,7 +546,7 @@ export const equipmentNodes: EquipmentNode[] = [
     {
         id: '864-E-1102A/B',
         type: 'equipment',
-        model: 'Shell & Tube Exchanger',
+        modelType: 'Shell & Tube Exchanger',
         equipmentId: '864-E-1102A/B',
         material: 'CS',
         temp: '160–180',
@@ -561,7 +559,7 @@ export const equipmentNodes: EquipmentNode[] = [
     {
         id: '864-E-1103',
         type: 'equipment',
-        model: 'Air Fin Cooler',
+        modelType: 'Air Fin Cooler',
         equipmentId: '864-E-1103',
         material: 'CS',
         temp: '~40',
@@ -574,7 +572,7 @@ export const equipmentNodes: EquipmentNode[] = [
     {
         id: '864-E-1101A/B',
         type: 'equipment',
-        model: 'Shell & Tube Exchanger',
+        modelType: 'Shell & Tube Exchanger',
         equipmentId: '864-E-1101A/B',
         capacity: '28.3*1.16 MMBTU/HR',
         material: 'CS',
@@ -586,7 +584,7 @@ export const equipmentNodes: EquipmentNode[] = [
     {
         id: '864-D-1104A',
         type: 'equipment',
-        model: 'Horizontal Drum',
+        modelType: 'Horizontal Drum',
         equipmentId: '864-D-1104A',
         material: 'CS',
         temp: '40–60',
@@ -598,7 +596,7 @@ export const equipmentNodes: EquipmentNode[] = [
     {
         id: '864-K-1104A',
         type: 'equipment',
-        model: 'Centrifugal Compressor',
+        modelType: 'Centrifugal Compressor',
         equipmentId: '864-K-1104A',
         capacity: '8000 Nm3/h (예상)',
         material: 'Alloy Steel',
@@ -611,7 +609,7 @@ export const equipmentNodes: EquipmentNode[] = [
     {
         id: '864-E-1104A',
         type: 'equipment',
-        model: 'Air Fin Cooler',
+        modelType: 'Air Fin Cooler',
         equipmentId: '864-E-1104A',
         pfd: 'BA-344717',
         pid: 'C',
@@ -620,7 +618,7 @@ export const equipmentNodes: EquipmentNode[] = [
     {
         id: '864-D-1105A',
         type: 'equipment',
-        model: 'Horizontal Drum',
+        modelType: 'Horizontal Drum',
         equipmentId: '864-D-1105A',
         material: 'CS',
         temp: '60–80',
@@ -632,7 +630,7 @@ export const equipmentNodes: EquipmentNode[] = [
     {
         id: '864-G-1101A/B',
         type: 'equipment',
-        model: 'Centrifugal Pump',
+        modelType: 'Centrifugal Pump',
         equipmentId: '864-G-1101A/B',
         material: 'SS',
         temp: '~50',
@@ -644,7 +642,7 @@ export const equipmentNodes: EquipmentNode[] = [
     {
         id: '864-G-1104A/B',
         type: 'equipment',
-        model: 'Centrifugal Pump',
+        modelType: 'Centrifugal Pump',
         equipmentId: '864-G-1104A/B',
         pfd: 'BA-344717',
         pid: 'C',
@@ -656,7 +654,6 @@ export const blockNodes: BlockNode[] = [
     {
         id: 'HE102',
         type: 'block',
-        unitId: 'HE102',
         blockType: 'Heater',
         inletIds: ['S116-1'],
         outletIds: ['S116-2'],
@@ -665,7 +662,6 @@ export const blockNodes: BlockNode[] = [
     {
         id: 'V-102',
         type: 'block',
-        unitId: 'V-102',
         blockType: 'Separator',
         inletIds: ['S116-2'],
         outletIds: ['S116-3', 'S117'],
@@ -674,7 +670,6 @@ export const blockNodes: BlockNode[] = [
     {
         id: 'T101-1',
         type: 'block',
-        unitId: 'T101-1',
         blockType: 'Absorber / Tower',
         inletIds: ['S111', 'Vap Out from T102'],
         outletIds: ['S112', 'PA Draw', 'Water Out'],
@@ -683,7 +678,6 @@ export const blockNodes: BlockNode[] = [
     {
         id: 'T101-2',
         type: 'block',
-        unitId: 'T101-2',
         blockType: 'Absorber / Tower',
         inletIds: ['PA return', 'Boiled Up'],
         outletIds: ['S116', 'Vap Out from T102'],
@@ -692,7 +686,6 @@ export const blockNodes: BlockNode[] = [
     {
         id: 'HE101',
         type: 'block',
-        unitId: 'HE101',
         blockType: 'Heat Exchanger',
         inletIds: ['S114', 'S117'],
         outletIds: ['S115', 'S118'],
@@ -701,7 +694,6 @@ export const blockNodes: BlockNode[] = [
     {
         id: 'V101',
         type: 'block',
-        unitId: 'V101',
         blockType: '3-Phase Separator',
         inletIds: ['S101', 'S102'],
         outletIds: ['off gas', 'S111', 'S105'],
@@ -709,7 +701,6 @@ export const blockNodes: BlockNode[] = [
     {
         id: 'Prod Cooler',
         type: 'block',
-        unitId: 'Prod Cooler',
         blockType: 'Cooler',
         inletIds: ['S118'],
         outletIds: ['S119'],
