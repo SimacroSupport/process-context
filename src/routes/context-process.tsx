@@ -38,20 +38,29 @@ const graphLinks = buildGraphLinks(
 function RouteComponent() {
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const fgRef = useRef<any>(null);
-
   function focusNode(node: GraphNode) {
-    setSelectedNode(node);
-    const distance = 100;
-    const distRatio = 1 + distance / Math.hypot(node.x || 0, node.y || 0, node.z || 0);
-    const newPos = {
-      x: (node.x || 0) * distRatio,
-      y: (node.y || 0) * distRatio,
-      z: (node.z || 0) * distRatio,
-    };
-    fgRef.current.cameraPosition(newPos, node, 2000);
-  }
+        setSelectedNode(node);
 
-  return (
+        const fg = fgRef.current;
+        if (!fg || !node.x || !node.y || !node.z) return;
+
+        const distance = 100;
+
+        // 노드 기준 방향 벡터 생성
+        const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
+
+        // 카메라가 이동할 위치: 노드 위치에서 약간 떨어진 곳
+        const newPos = {
+            x: node.x * distRatio,
+            y: node.y * distRatio,
+            z: node.z * distRatio,
+        };
+
+        // 반드시 node를 lookAt 대상으로 지정해야 중앙에 보임
+        fg.cameraPosition(newPos, node, 1000);
+    }
+
+    return (
       <div>
         <NodeLegend />
         <ForceGraph3D
