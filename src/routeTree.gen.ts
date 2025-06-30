@@ -9,7 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ContextProcessRouteImport } from './routes/context-process'
+import { Route as ContextProcessRouteImport } from './routes/process-context.tsx'
 import { Route as IndexRouteImport } from './routes/index'
 
 const ContextProcessRoute = ContextProcessRouteImport.update({

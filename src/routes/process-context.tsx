@@ -16,8 +16,8 @@ import {
   type GraphNode,
 } from '../data/processData';
 import {colorMap} from "@/utils/colorMap.ts";
-import {NodeLegend} from "@/components/context-process/NodeLegend.tsx";
-import NodeDetailPanel from "@/components/context-process/NodeDetailPanel.tsx";
+import {NodeLegend} from "@/components/process-context/NodeLegend.tsx";
+import NodeDetailPanel from "@/components/process-context/NodeDetailPanel.tsx";
 
 export const Route = createFileRoute('/context-process')({
   component: RouteComponent,
