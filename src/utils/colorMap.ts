@@ -5,4 +5,5 @@ export const colorMap: Record<string, string> = {
     line: '#ff9900',
     stream: '#00aa00',
     tag: '#d62728',
+    datasheet: '#996633',
 };

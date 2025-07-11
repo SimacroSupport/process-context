@@ -1,42 +1,98 @@
-import { type GraphNode } from '@/data/processData';
-import {
-    pfdNodes,
-    equipmentNodes,
-    blockNodes,
-    lineNodes,
-    streamNodes,
-    tagNodes,
-} from '@/data/processData';
+import {useState} from "react";
+import { type GraphNode, type BaseNode } from '@/data/processData';
+import { graphNodes } from '@/data/processData';
 import {colorMap} from "@/utils/colorMap.ts";
-
 import styles from '../../styles/contextProcess.module.css';
+import PdfOverlay from "@/components/PdfOverlay.tsx";
 
 interface Props {
     node: GraphNode;
     onFocus: (node: GraphNode) => void;
 }
 
+
 const NodeDetail = ({ node, onFocus }: Props) => {
     const inlineList = styles.inlineList;
     const itemClass = styles.listItem;
     const descClass = styles.smallDesc;
+    const [showOverlay, setShowOverlay] = useState(false);
 
     const coloredId = (id: string, type: string) => (
         <strong style={{ color: colorMap[type] || '#333' }}>{id}</strong>
     );
 
-    if (node.type === 'pfd') {
-        const connList = pfdNodes.find(pfd => pfd.id === node.id)?.connections || [];
+    const linked = node?.linked ?? {};
+
+    const pfdNodes = graphNodes.filter(n => n.type === 'pfd');
+    const equipmentNodes = graphNodes.filter(n => n.type === 'equipment');
+    const blockNodes = graphNodes.filter(n => n.type === 'block');
+    const lineNodes = graphNodes.filter(n => n.type === 'line');
+    const streamNodes = graphNodes.filter(n => n.type === 'stream');
+    const tagNodes = graphNodes.filter(n => n.type === 'tag');
+    const datasheetNodes = graphNodes.filter(n => n.type === 'datasheet');
+
+    const nodeTypeMap: Record<string, { type: string; source: BaseNode[] }> = {
+        stream: { type: 'stream', source: streamNodes },
+        equipment: { type: 'equipment', source: equipmentNodes },
+        block: { type: 'block', source: blockNodes },
+        line: { type: 'line', source: lineNodes },
+        tag: { type: 'tag', source: tagNodes },
+        datasheet: { type: 'datasheet', source: datasheetNodes },
+        pfd: { type: 'pfd', source: pfdNodes },
+    };
+
+    const formatKeyName = (key: string) => {
+        const map: Record<string, string> = {
+            inletStreams: 'Inlet Streams',
+            outletStreams: 'Outlet Streams',
+            equipment: 'Connected Equipments',
+            hotStreamIn: 'Hot Stream In',
+            hotStreamOut: 'Hot Stream Out',
+            coldStreamIn: 'Cold Stream In',
+            coldStreamOut: 'Cold Stream Out',
+        };
+        return map[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+    };
+
+    const renderLinkedItems = (
+        key: string,
+        value: string | string[],
+        nodeType: string,
+        sourceNodes: BaseNode[],
+    ) => {
+        const idList = Array.isArray(value) ? value : [value];
+        const matchedNodes = sourceNodes.filter(n => idList.includes(n.id));
+        if (matchedNodes.length === 0) return null;
+
+        return (
+            <>
+                <hr />
+                <p><strong>{formatKeyName(key)}</strong></p>
+                <ul className={inlineList}>
+                    {matchedNodes.map(n => (
+                        <li key={n.id} onClick={() => onFocus(n as GraphNode)} className={itemClass}>
+                            {coloredId(n.id, nodeType)}{' '}
+                            {'modelType' in n && `(${(n as any).modelType || '-'})`}<br />
+                            <span className={descClass}>
+                                {(n as any).description || (n as any).filename || '-'}
+                            </span>
+                        </li>
+                    ))}
+                </ul>
+            </>
+        );
+    };
+
+    if (node.type === 'pfd' && 'equipments' in linked) {
         return (
             <>
                 <p><strong>Equipments:</strong></p>
                 <ul className={inlineList}>
-                    {connList.map(conn => {
-                        const eq = equipmentNodes.find(e => e.id === conn.equipmentId);
+                    {(linked.equipments as string[]).map(equipmentId => {
+                        const eq = equipmentNodes.find(e => e.id === equipmentId);
                         return (
-                            <li key={conn.equipmentId} onClick={() => eq && onFocus(eq)} className={itemClass}>
-                                {coloredId(conn.equipmentId, 'equipment')} ({eq?.modelType})<br />
-
+                            <li key={equipmentId} onClick={() => eq && onFocus(eq)} className={itemClass}>
+                                {coloredId(equipmentId, 'equipment')} ({eq?.modelType || '-'})<br />
                                 <span className={descClass}>{eq?.description || '-'}</span>
                             </li>
                         );
@@ -46,240 +102,127 @@ const NodeDetail = ({ node, onFocus }: Props) => {
         );
     }
 
-    if (node.type === 'equipment') {
-        const connectedPfd = pfdNodes.find(pfd => pfd.id === node.pfd);
-        const relatedLines = lineNodes.filter(line => line.from === node.id || line.to === node.id);
-        const relatedBlocks = blockNodes.filter(block => node.blocks?.includes(block.id));
+    if (
+        node.type === 'equipment' ||
+        node.type === 'block' ||
+        node.type === 'stream' ||
+        node.type === 'line' ||
+        node.type === 'tag'
+    ) {
+        const renderBasicInfo = () => {
+            switch (node.type) {
+                case 'equipment': {
+                    const connectedPfd =
+                        'pfd' in linked && linked.pfd
+                            ? pfdNodes.find(p => p.id === linked.pfd)
+                            : undefined;
+
+                    return (
+                        <>
+                            <p><strong>Model Type:</strong> {node.modelType || '-'}</p>
+                            <p><strong>Description:</strong> {node.description || '-'}</p>
+                            <p><strong>Material:</strong> {node.material || '-'}</p>
+                            <p><strong>Temp:</strong> {node.temp || '-'}</p>
+                            <p><strong>Pressure:</strong> {node.pressure || '-'}</p>
+
+                            {connectedPfd && (
+                                <>
+                                    <hr />
+                                    <p><strong>Connected PFD</strong></p>
+                                    <ul className={inlineList}>
+                                        <li onClick={() => onFocus(connectedPfd)} className={itemClass}>
+                                            {coloredId(connectedPfd.id, 'pfd')}<br />
+                                            <span className={descClass}>{connectedPfd.id}</span>
+                                        </li>
+                                    </ul>
+                                </>
+                            )}
+                        </>
+                    );
+                }
+
+                case 'block':
+                    return (
+                        <>
+                            <p><strong>Block Type:</strong> {node.blockType || '-'}</p>
+                            <p><strong>Description:</strong> {node.description || '-'}</p>
+                        </>
+                    );
+
+                case 'stream':
+                    return (
+                        <>
+                            <p><strong>Type:</strong> Stream</p>
+                            <p><strong>Stream Type:</strong> {node.streamType}</p>
+                        </>
+                    );
+
+                case 'line':
+                    return (
+                        <>
+                            <p><strong>Type:</strong> Line</p>
+                            <p><strong>Phase:</strong> {node.phase || '-'}</p>
+                            <p><strong>Description:</strong> {node.description || '-'}</p>
+                        </>
+                    );
+
+                case 'tag':
+                    return (
+                        <>
+                            <p><strong>Type:</strong> {node.tagType}</p>
+                        </>
+                    );
+
+                default:
+                    return null;
+            }
+        };
 
         return (
             <>
-                <p><strong>Model Type:</strong> {node.modelType || '-'}</p>
-                <p><strong>Description:</strong> {node.description}</p>
-                <p><strong>Material:</strong> {node.material || '-'}</p>
-                <p><strong>Temp:</strong> {node.temp || '-'}</p>
-                <p><strong>Pressure:</strong> {node.pressure || '-'}</p>
+                {renderBasicInfo()}
 
-                {connectedPfd && (
-                    <>
-                        <hr />
-                        <p><strong>Connected PFD</strong></p>
-                        <ul className={inlineList}>
-                            <li onClick={() => onFocus(connectedPfd)} className={itemClass}>
-                                {coloredId(connectedPfd.id, 'pfd')}<br />
-                                <span className={descClass}>{connectedPfd.id}</span>
-                            </li>
-                        </ul>
-                    </>
-                )}
-
-                {relatedLines.length > 0 && (
-                    <>
-                        <hr />
-                        <p><strong>Connected Lines</strong></p>
-                        <ul className={inlineList}>
-                            {relatedLines.map(line => (
-                                <li key={line.id} onClick={() => onFocus(line)} className={itemClass}>
-                                    {coloredId(line.id, 'line')} ({line.phase})<br />
-                                    <span className={descClass}>{line.description}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </>
-                )}
-
-                {relatedBlocks.length > 0 && (
-                    <>
-                        <hr />
-                        <p><strong>Connected Blocks</strong></p>
-                        <ul className={inlineList}>
-                            {relatedBlocks.map(block => (
-                                <li key={block.id} onClick={() => onFocus(block)} className={itemClass}>
-                                    {coloredId(block.id, 'block')} ({block.blockType})<br />
-                                    <span className={descClass}>{block.type || '-'}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </>
-                )}
+                {Object.entries(linked).map(([key, value]) => {
+                    if (!value || key === 'pfd') return null;
+                    const match = Object.keys(nodeTypeMap).find(type =>
+                        key.toLowerCase().includes(type)
+                    );
+                    if (!match) return null;
+                    const { type, source } = nodeTypeMap[match];
+                    return renderLinkedItems(key, value, type, source);
+                })}
             </>
         );
     }
 
-    if (node.type === 'block') {
-        const inletStreams = streamNodes.filter(s => node.inletIds?.includes(s.id));
-        const outletStreams = streamNodes.filter(s => node.outletIds?.includes(s.id));
-        const relatedEquipments = equipmentNodes.filter(eq => eq.blocks?.includes(node.id));
+
+    if (node.type === 'datasheet') {
+        const connectedEquipment = 'equipment' in linked && linked.equipment ? equipmentNodes.find(eq => eq.id === linked.equipment) : undefined;
 
         return (
             <>
-                <p><strong>Block Type:</strong> {node.blockType || '-'}</p>
-                <p><strong>Remarks:</strong> {node.remarks || '-'}</p>
+                <p><strong>Datasheet PDF</strong></p>
+                <p><strong>Filename:</strong> {node.filename}.{node.extension}</p>
 
-                {relatedEquipments.length > 0 && (
-                    <>
-                        <hr />
-                        <p><strong>Connected Equipments</strong></p>
-                        <ul className={inlineList}>
-                            {relatedEquipments.map(eq => (
-                                <li key={eq.id} onClick={() => onFocus(eq)} className={itemClass}>
-                                    {coloredId(eq.id, 'equipment')} ({eq.modelType})<br />
-                                    <span className={descClass}>{eq.description || '-'}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </>
+                <button onClick={() => setShowOverlay(true)} className={styles.listItem}>
+                    Open PDF Preview
+                </button>
+
+                {showOverlay && (
+                    <PdfOverlay
+                        fileUrl={`/datasheets/${node.filename}.pdf`}
+                        onClose={() => setShowOverlay(false)}
+                    />
                 )}
 
-                {inletStreams.length > 0 && (
+                {connectedEquipment && (
                     <>
                         <hr />
-                        <p><strong>Inlet Streams</strong></p>
+                        <p><strong>Connected Equipment</strong></p>
                         <ul className={inlineList}>
-                            {inletStreams.map(stream => (
-                                <li key={stream.id} onClick={() => onFocus(stream)} className={itemClass}>
-                                    {coloredId(stream.id, 'stream')} ({stream.streamType})
-                                </li>
-                            ))}
-                        </ul>
-                    </>
-                )}
-
-                {outletStreams.length > 0 && (
-                    <>
-                        <p><strong>Outlet Streams</strong></p>
-                        <ul className={inlineList}>
-                            {outletStreams.map(stream => (
-                                <li key={stream.id} onClick={() => onFocus(stream)} className={itemClass}>
-                                    {coloredId(stream.id, 'stream')} ({stream.streamType})
-                                </li>
-                            ))}
-                        </ul>
-                    </>
-                )}
-            </>
-        );
-    }
-
-    if (node.type === 'stream') {
-        const connectedLines = lineNodes.filter(line => line.streamId === node.id);
-        const connectedBlocks = blockNodes.filter(block =>
-            block.inletIds.includes(node.id) || block.outletIds.includes(node.id)
-        );
-
-        return (
-            <>
-                <p><strong>Type:</strong> Stream</p>
-
-                {connectedLines.length > 0 && (
-                    <>
-                        <hr />
-                        <p><strong>Connected Lines</strong></p>
-                        <ul className={inlineList}>
-                            {connectedLines.map(line => (
-                                <li key={line.id} onClick={() => onFocus(line)} className={itemClass}>
-                                    {coloredId(line.id, 'line')} ({line.phase || '-'})<br />
-                                    <span className={descClass}>{line.description || '-'}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </>
-                )}
-
-                {connectedBlocks.length > 0 && (
-                    <>
-                        <hr />
-                        <p><strong>Connected Blocks</strong></p>
-                        <ul className={inlineList}>
-                            {connectedBlocks.map(block => (
-                                <li key={block.id} onClick={() => onFocus(block)} className={itemClass}>
-                                    {coloredId(block.id, 'block')} ({block.blockType})<br />
-                                    <span className={descClass}>{block.remarks || '-'}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </>
-                )}
-            </>
-        );
-    }
-
-    if (node.type === 'line') {
-        const matchedStream = streamNodes.find(s => s.id === node.streamId);
-        const connectedTags = tagNodes.filter(tag => tag.lineId === node.id);
-        const connectedEquipments = equipmentNodes.filter(eq =>
-            eq.id === node.from || eq.id === node.to
-        );
-
-        return (
-            <>
-                <p><strong>Type:</strong> Line</p>
-                <p><strong>Phase:</strong> {node.phase || '-'}</p>
-                <p><strong>Description:</strong> {node.description || '-'}</p>
-                <p><strong>Stream ID:</strong> {node.streamId || '-'}</p>
-
-                {matchedStream && (
-                    <>
-                        <hr />
-                        <p><strong>Stream Info</strong></p>
-                        <ul className={inlineList}>
-                            <li onClick={() => onFocus(matchedStream)} className={itemClass}>
-                                {coloredId(matchedStream.id, 'stream')} ({matchedStream.streamType})
-                            </li>
-                        </ul>
-                    </>
-                )}
-
-                {connectedEquipments.length > 0 && (
-                    <>
-                        <hr />
-                        <p><strong>Connected Equipments</strong></p>
-                        <ul className={inlineList}>
-                            {connectedEquipments.map(eq => (
-                                <li key={eq.id} onClick={() => onFocus(eq)} className={itemClass}>
-                                    {coloredId(eq.id, 'equipment')} ({eq.modelType})<br />
-                                    <span className={descClass}>{eq.description || '-'}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </>
-                )}
-
-                {connectedTags.length > 0 && (
-                    <>
-                        <hr />
-                        <p><strong>Connected Tags</strong></p>
-                        <ul className={inlineList}>
-                            {connectedTags.map(tag => (
-                                <li key={tag.id} onClick={() => onFocus(tag)} className={itemClass}>
-                                    {coloredId(tag.id, 'tag')} ({tag.tagType})<br />
-                                    <span className={descClass}>Value: {tag.value}</span>
-                                </li>
-                            ))}
-                        </ul>
-                    </>
-                )}
-            </>
-        );
-    }
-
-    if (node.type === 'tag') {
-        const tag = tagNodes.find(t => t.id === node.id);
-        const connectedLine = lineNodes.find(line => line.id === tag?.lineId);
-
-        return (
-            <>
-                <p><strong>Type:</strong> {tag?.tagType}</p>
-                <p><strong>Value:</strong> {tag?.value}</p>
-                <p><strong>Connected Line:</strong> {tag?.lineId}</p>
-
-                {connectedLine && (
-                    <>
-                        <hr />
-                        <p><strong>Line Info</strong></p>
-                        <ul className={inlineList}>
-                            <li onClick={() => onFocus(connectedLine)} className={itemClass}>
-                                {coloredId(connectedLine.id, 'line')} ({connectedLine.phase || '-'})<br />
-                                <span className={descClass}>{connectedLine.description || '-'}</span>
+                            <li onClick={() => onFocus(connectedEquipment)} className={itemClass}>
+                                {coloredId(connectedEquipment.id, 'equipment')} ({connectedEquipment.modelType})<br />
+                                <span className={descClass}>{connectedEquipment.description || '-'}</span>
                             </li>
                         </ul>
                     </>

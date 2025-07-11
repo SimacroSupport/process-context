@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 export interface BaseNode {
     id: string;
     type: string;
@@ -6,880 +8,1371 @@ export interface BaseNode {
     z?: number;
 }
 
-export interface LineNode extends BaseNode {
-    id: string;               // ex) '116'
-    type: 'line';             // 고정 값
-    phase: 'Liquid' | 'Vapor' | 'Steam' | ''; // Phase는 명확하게 제한해주는 것이 좋습니다
-    from: string;             // 출발 장치명
-    to: string;               // 도착 장치명
-    description: string;      // 설명
-    streamId?: string;        // 연결된 Stream ID (선택)
-}
-
-export interface StreamNode extends BaseNode {
-    id: string;               // ex) 'S101'
-    type: 'stream';           // 고정 값
-    streamType: 'Material' | 'Utility' | ''; // Material or Utility 등 구분
-    from?: string;            // 출발 장치명
-    to?: string;              // 도착 장치명
+export interface PfdNode extends BaseNode {
+    id: string;
+    type: 'pfd';
+    linked: {
+        equipments: string[];
+    };
 }
 
 export interface EquipmentNode extends BaseNode {
     id: string;
     type: 'equipment';
     modelType: string;
-    equipmentId: string;
     description: string;
-    blocks?: string[]; // 연결된 Block ID들
     material?: string;
     temp?: string;
     pressure?: string;
     capacity?: string;
-    pfd?: string;
-    pid?: string;
+    linked?: {
+        pfd?: string;
+        pnid?: string;
+        blocks?: string[];
+        inletLines?: string[];
+        outletLines?: string[];
+        datasheets?: string[];
+        tags?: string[];
+    };
 }
 
+export interface LineNode extends BaseNode {
+    id: string;
+    type: 'line';
+    phase: 'Liquid' | 'Vapor' | 'Steam' | '';
+    description: string;
+    linked: {
+        stream?: string;
+        inletEquipment?: string;
+        outletEquipment?: string;
+        tags?: string[];
+    };
+}
 
 export interface BlockNode extends BaseNode {
-    id: string;              // Block ID (예: HE101)
-    type: 'block';           // 고정 값
-    blockType: string;       // 예: 'Heater', 'Separator'
-    inletIds: string[];      // 연결된 Inlet Stream ID 목록
-    outletIds: string[];     // 연결된 Outlet Stream ID 목록
-    remarks?: string;        // 비고
+    id: string;
+    type: 'block';
+    blockType: string;
+    rootNode?: string;
+    linked?: {
+        hotStreamIn?:string,
+        hotStreamOut?:string,
+        coldStreamIn?:string,
+        coldStreamOut?:string,
+        inletStreams?: string[];
+        outletStreams?: string[];
+        equipment?: string[];
+    };
+    description?: string;
 }
 
-export interface PfdNode extends BaseNode {
+export interface StreamNode extends BaseNode {
     id: string;
-    type: 'pfd';
-    connections?: {
-        equipmentId: string;
-        inletStreams: string[];
-        outletStreams: string[];
-    }[];
+    type: 'stream';
+    streamType: 'Material' | 'Utility' | '';
+    rootNode: string;
+    linked?: {
+        inletBlock?: string | null;
+        outletBlock?: string | null;
+        line?: string | null;
+    };
 }
 
 export interface TagNode extends BaseNode {
-    id: string;           // ex) "TI100"
-    type: 'tag';          // 고정 값
-    tagType: 'TI' | 'PI' | 'FI' | 'GC' | 'H2O' | 'H2S' | 'RVP';  // 태그 분류
-    lineId: string;       // 연결된 Line의 ID
-    value: number;        // 측정값 (임시 랜덤 값)
+    id: string;
+    type: 'tag';
+    tagType: string;
+    rootNode?: string;
+    linked?: {
+        line?: string;
+        equipment?: string;
+    };
 }
 
+export interface DatasheetNode extends BaseNode {
+    id: string;
+    type: 'datasheet';
+    filename: string;
+    extension: 'pdf' | 'jpg' | 'png' | 'docx' | string;
+    linked: {
+        equipment: string;
+    };
+    _spritePromise?: Promise<THREE.Sprite>;
+}
 
-export type GraphNode = PfdNode | EquipmentNode | BlockNode | LineNode | StreamNode | TagNode;
+export type GraphNode = PfdNode | EquipmentNode | BlockNode | LineNode | StreamNode | TagNode  | DatasheetNode;
 
 export type GraphLink = {
     source: string;
     target: string;
 };
 
-export const pfdNodes: PfdNode[] = [
-    {
-        id: 'BA-344715',
-        type: 'pfd',
-        connections: [
-            {
-                equipmentId: '864-U-1101A/B',
-                inletStreams: ['116', '116-2'],
-                outletStreams: ['205', '233']
-            },
-            {
-                equipmentId: '864-C-1101',
-                inletStreams: ['205', '211', '209'],
-                outletStreams: ['207', '210', '208', '206']
-            },
-            {
-                equipmentId: '864-D-1101',
-                inletStreams: [],
-                outletStreams: ['204']
-            },
-            {
-                equipmentId: '864-E-1102A/B',
-                inletStreams: ['208', 'HP Steam In'],
-                outletStreams: ['209', 'HP Steam Out']
-            }
-        ]
-    },
-    {
-        id: 'BA-344716',
-        type: 'pfd',
-        connections: [
-            {
-                equipmentId: '864-E-1103',
-                inletStreams: ['213'],
-                outletStreams: ['235']
-            },
-            {
-                equipmentId: '864-E-1101A/B',
-                inletStreams: ['210', '206'],
-                outletStreams: ['211', '213']
-            },
-            {
-                equipmentId: '864-G-1101A/B',
-                inletStreams: ['235'],
-                outletStreams: ['214']
-            }
-        ]
-    },
-    {
-        id: 'BA-344717',
-        type: 'pfd',
-        connections: [
-            {
-                equipmentId: '864-D-1104A',
-                inletStreams: ['234'],
-                outletStreams: ['216', '217']
-            },
-            {
-                equipmentId: '864-K-1104A',
-                inletStreams: ['216'],
-                outletStreams: ['218']
-            },
-            {
-                equipmentId: '864-E-1104A',
-                inletStreams: ['218'],
-                outletStreams: ['219']
-            },
-            {
-                equipmentId: '864-D-1105A',
-                inletStreams: ['219'],
-                outletStreams: ['221', '223']
-            },
-            {
-                equipmentId: '864-G-1104A/B',
-                inletStreams: ['217'],
-                outletStreams: ['220']
-            }
-        ]
-    }
-];
 
-export const lineNodes: LineNode[] =[
+export const graphNodes: GraphNode[] = [
     {
-        "id": "116",
-        "type": "line",
-        "phase": "Liquid",
-        "from": "Feed",
-        "to": "864-U-1101A/B",
-        "description": "Condensate to Condensate Stabilizer Coalescer",
-        "streamId": "S101"
+        "id": "BA-344715",
+        "type": "pfd",
+        "linked": {
+            "equipments": [
+                "864-U-1101A/B",
+                "864-C-1101",
+                "864-D-1101",
+                "864-E-1102A/B"
+            ]
+        }
     },
-    {
-        "id": "116-2",
-        "type": "line",
-        "phase": "Liquid",
-        "from": "Feed",
-        "to": "864-U-1101A/B",
-        "description": "Condensate to Condensate Stabilizer Coalescer",
-        "streamId": "S102"
-    },
-    {
-        "id": "205",
-        "type": "line",
-        "phase": "Liquid",
-        "from": "864-U-1101A/B",
-        "to": "864-C-1101",
-        "description": "Condensate from Condensate Stabilizer Coalescer",
-        "streamId": "S111"
-    },
-    {
-        "id": "208",
-        "type": "line",
-        "phase": "Liquid",
-        "from": "864-C-1101",
-        "to": "864-E-1102A/B",
-        "description": "Cond. Stabilizer Reboiler Feed",
-        "streamId": "S116"
-    },
-    {
-        "id": "210",
-        "type": "line",
-        "phase": "Liquid",
-        "from": "864-C-1101",
-        "to": "864-E-1101A/B",
-        "description": "Liquid draw to Side Reboiler",
-        "streamId": "S114"
-    },
-    {
-        "id": "211",
-        "type": "line",
-        "phase": "Liquid",
-        "from": "864-E-1101A/B",
-        "to": "864-C-1101",
-        "description": "Liquid draw Side Reboiler Return",
-        "streamId": "S115"
-    },
-    {
-        "id": "204",
-        "type": "line",
-        "phase": "Liquid",
-        "from": "864-D-1101",
-        "to": "Sour Water Stripper",
-        "description": "Sour Water from Cond. Stabilzer",
-        "streamId": "Water Out"
-    },
-    {
-        "id": "207",
-        "type": "line",
-        "phase": "Vapor",
-        "from": "864-C-1101",
-        "to": "Overhead Comp. Mixer",
-        "description": "Top Gas from Cond. Stabilzer",
-        "streamId": "S112"
-    },
-    {
-        "id": "206",
-        "type": "line",
-        "phase": "Liquid",
-        "from": "864-C-1101",
-        "to": "864-E-1101A/B",
-        "description": "Condenstate from Cond. Stabilzer Bttm",
-        "streamId": "S117"
-    },
-    {
-        "id": "209",
-        "type": "line",
-        "phase": "Vapor",
-        "from": "864-E-1102A/B",
-        "to": "864-C-1101",
-        "description": "Cond. Stabilizer Reboiler Return",
-        "streamId": "S116-3"
-    },
-    {
-        "id": "216",
-        "type": "line",
-        "phase": "Vapor",
-        "from": "864-D-1104A",
-        "to": "864-K-1104A",
-        "description": "Gas to Cond. Stabilizer Ovhd Comp. Knock Out Drom",
-        "streamId": ""
-    },
-    {
-        "id": "217",
-        "type": "line",
-        "phase": "Liquid",
-        "from": "864-D-1104A",
-        "to": "864-G-1104A/B",
-        "description": "Liq to Cond. Stabilizer Ovhd Comp. KOD",
-        "streamId": ""
-    },
-    {
-        "id": "214",
-        "type": "line",
-        "phase": "Liquid",
-        "from": "864-G-1101A/B/C",
-        "to": "Export Pipeline",
-        "description": "Stabilized Condensate to Export Pipeline",
-        "streamId": "S120"
-    },
-    {
-        "id": "215",
-        "type": "line",
-        "phase": "Vapor",
-        "from": "LP Sour Gas",
-        "to": "864-D-1104A",
-        "description": "LP Sour Gas",
-        "streamId": ""
-    },
-    {
-        "id": "228",
-        "type": "line",
-        "phase": "Liquid",
-        "from": "864-D-1105A",
-        "to": "864-D-1002",
-        "description": "Condensate from String A/B",
-        "streamId": ""
-    },
-    {
-        "id": "234",
-        "type": "line",
-        "phase": "Liquid",
-        "from": "864-D-1002",
-        "to": "864-D-1104A",
-        "description": "Gas from to Cond. Stabilizer O/H Comp KOD",
-        "streamId": ""
-    },
-    {
-        "id": "218",
-        "type": "line",
-        "phase": "Vapor",
-        "from": "864-K-1104A",
-        "to": "864-E-1104A",
-        "description": "Sour Gas from Cond. Stabilizer O/H Comp. Discharge",
-        "streamId": ""
-    },
-    {
-        "id": "219",
-        "type": "line",
-        "phase": "Vapor",
-        "from": "864-E-1104A",
-        "to": "864-D-1105A",
-        "description": "Sour Gas from Cond. Stabilizer O/H Comp. Discharge Cooler",
-        "streamId": ""
-    },
-    {
-        "id": "221",
-        "type": "line",
-        "phase": "Vapor",
-        "from": "864-D-1105A",
-        "to": "Sour Gas",
-        "description": "Sour Gas from Cond. Stabilizer O/H Comp. Discharge KOD",
-        "streamId": ""
-    },
-    {
-        "id": "223",
-        "type": "line",
-        "phase": "Liquid",
-        "from": "864-D-1105A",
-        "to": "864-D-1002",
-        "description": "Condensate from Cond. Stabilizer O/H Comp. Discharge KOD",
-        "streamId": ""
-    },
-    {
-        "id": "226",
-        "type": "line",
-        "phase": "Vapor",
-        "from": "864-D-1105A/B",
-        "to": "854-D-1001",
-        "description": "To Inlet Gas Slug Catcher",
-        "streamId": ""
-    },
-    {
-        "id": "213",
-        "type": "line",
-        "phase": "Liquid",
-        "from": "864-E-1101A/B",
-        "to": "864-E-1103",
-        "description": "Stabilized Condensate to Product Cooler",
-        "streamId": "S118"
-    },
-    {
-        "id": "235",
-        "type": "line",
-        "phase": "Liquid",
-        "from": "864-E-1103",
-        "to": "864-G-1101A/B/C",
-        "description": "Stabilized Condensate from Product Cooler",
-        "streamId": "S119"
-    }
-]
+        {
+            "id": "BA-344716",
+            "type": "pfd",
+            "linked": {
+                "equipments": [
+                    "864-E-1103",
+                    "864-E-1101A/B",
+                    "864-G-1101A/B"
+                ]
+            }
+        },
+        {
+            "id": "BA-344717",
+            "type": "pfd",
+            "linked": {
+                "equipments": [
+                    "864-D-1104A",
+                    "864-K-1104A",
+                    "864-E-1104A",
+                    "864-D-1105A",
+                    "864-G-1104A/B"
+                ]
+            }
+        },
+        {
+            "id": "864-U-1101A/B",
+            "type": "equipment",
+            "modelType": "Vessel",
+            "description": "Condensate Stabilizer Coalescer",
+            "linked": {
+                "pfd": "BA-344715",
+                "pnid": "A",
+                "blocks": [
+                    "V-102"
+                ],
+                "inletLines": [
+                    "116",
+                    "116-2"
+                ],
+                "outletLines": [
+                    "205",
+                    "233"
+                ],
+                "datasheets": [
+                    "DS-V1101"
+                ]
+            }
+        },
+        {
+            "id": "864-C-1101",
+            "type": "equipment",
+            "modelType": "Tray Column",
+            "capacity": "-",
+            "material": "CS+SS (\uc608\uc0c1)",
+            "temp": "50\u2013150",
+            "pressure": "~8.5 / ~123.3",
+            "description": "Condensate Stabilizer Column",
+            "linked": {
+                "pfd": "BA-344715",
+                "pnid": "A",
+                "blocks": [
+                    "T101-1",
+                    "T101-2"
+                ],
+                "inletLines": [
+                    "205",
+                    "211",
+                    "209"
+                ],
+                "outletLines": [
+                    "207",
+                    "210",
+                    "208",
+                    "206"
+                ],
+                "tags": ["TI111", "TI112", "TI113", "TI114"]
 
-export const streamNodes: StreamNode[] = [
+            }
+        },
+        {
+            "id": "864-D-1101",
+            "type": "equipment",
+            "modelType": "Vessel",
+            "description": "Water Side Draw-Off Drum",
+            "linked": {
+                "pfd": "BA-344715",
+                "pnid": "A",
+                "inletLines": [],
+                "outletLines": [
+                    "204"
+                ],
+                "datasheets": [
+                    "DS-D1101"
+                ]
+            }
+        },
+        {
+            "id": "864-E-1102A/B",
+            "type": "equipment",
+            "modelType": "Shell & Tube Exchanger",
+            "material": "CS",
+            "temp": "160\u2013180",
+            "pressure": "~9 / ~130.5",
+            "description": "Stabilizer Reboiler",
+            "linked": {
+                "pfd": "BA-344715",
+                "pnid": "A",
+                "blocks": [
+                    "HE102"
+                ],
+                "inletLines": [
+                    "208",
+                    "HP Steam In"
+                ],
+                "outletLines": [
+                    "209",
+                    "HP Steam Out"
+                ],
+                "datasheets": [
+                    "DS-E1102"
+                ]
+            }
+        },
+        {
+            "id": "864-E-1103",
+            "type": "equipment",
+            "modelType": "Air Fin Cooler",
+            "material": "CS",
+            "temp": "~40",
+            "pressure": "~8 / ~116.0",
+            "description": "Product Cooler",
+            "linked": {
+                "pfd": "BA-344716",
+                "pnid": "B",
+                "blocks": [
+                    "Prod Cooler"
+                ],
+                "inletLines": [
+                    "213"
+                ],
+                "outletLines": [
+                    "235"
+                ]
+            }
+        },
+        {
+            "id": "864-E-1101A/B",
+            "type": "equipment",
+            "modelType": "Shell & Tube Exchanger",
+            "capacity": "28.3*1.16 MMBTU/HR",
+            "material": "CS",
+            "description": "Condensate Stabilizer Side Reboiler",
+            "linked": {
+                "pfd": "BA-344716",
+                "pnid": "B",
+                "blocks": [
+                    "HE101"
+                ],
+                "inletLines": [
+                    "210",
+                    "206"
+                ],
+                "outletLines": [
+                    "211",
+                    "213"
+                ],
+                "datasheets": [
+                    "HE101 TEMA Sheet"
+                ]
+            }
+        },
+        {
+            "id": "864-D-1104A",
+            "type": "equipment",
+            "modelType": "Horizontal Drum",
+            "material": "CS",
+            "temp": "40\u201360",
+            "pressure": "~8 / ~116.0",
+            "description": "Compressor Suction KO Drum",
+            "linked": {
+                "pfd": "BA-344717",
+                "pnid": "C",
+                "inletLines": [
+                    "234"
+                ],
+                "outletLines": [
+                    "216",
+                    "217"
+                ]
+            }
+        },
+        {
+            "id": "864-K-1104A",
+            "type": "equipment",
+            "modelType": "Centrifugal Compressor",
+            "capacity": "8000 Nm3/h (\uc608\uc0c1)",
+            "material": "Alloy Steel",
+            "temp": "50\u201380",
+            "pressure": "9\u201312 / 130.5\u2013174.0",
+            "description": "Condensate Stabilizer O/H Compressor A",
+            "linked": {
+                "pfd": "BA-344717",
+                "pnid": "C",
+                "inletLines": [
+                    "216"
+                ],
+                "outletLines": [
+                    "218"
+                ]
+            }
+        },
+        {
+            "id": "864-E-1104A",
+            "type": "equipment",
+            "modelType": "Air Fin Cooler",
+            "description": "Compressor Discharge Cooler",
+            "linked": {
+                "pfd": "BA-344717",
+                "pnid": "C",
+                "inletLines": [
+                    "218"
+                ],
+                "outletLines": [
+                    "219"
+                ]
+            }
+        },
+        {
+            "id": "864-D-1105A",
+            "type": "equipment",
+            "modelType": "Horizontal Drum",
+            "material": "CS",
+            "temp": "60\u201380",
+            "pressure": "~10 / ~145.0",
+            "description": "Compressor Discharge KO Drum",
+            "linked": {
+                "pfd": "BA-344717",
+                "pnid": "C",
+                "inletLines": [
+                    "219"
+                ],
+                "outletLines": [
+                    "221",
+                    "223"
+                ]
+            }
+        },
+        {
+            "id": "864-G-1101A/B",
+            "type": "equipment",
+            "modelType": "Centrifugal Pump",
+            "material": "SS",
+            "temp": "~50",
+            "pressure": "~10 / ~145.0",
+            "description": "Condensate Product Pump",
+            "linked": {
+                "pfd": "BA-344716",
+                "pnid": "B",
+                "inletLines": [
+                    "235"
+                ],
+                "outletLines": [
+                    "214"
+                ]
+            }
+        },
+        {
+            "id": "864-G-1104A/B",
+            "type": "equipment",
+            "modelType": "Centrifugal Pump",
+            "description": "Compressor Condensate Stream Pumps",
+            "linked": {
+                "pfd": "BA-344717",
+                "pnid": "C",
+                "inletLines": [
+                    "217"
+                ],
+                "outletLines": [
+                    "220"
+                ]
+            }
+        },
+        {
+            "id": "116",
+            "type": "line",
+            "phase": "Liquid",
+            "description": "Condensate to Condensate Stabilizer Coalescer",
+            "linked": {
+                "inletEquipment": "Battery Limit",
+                "outletEquipment": "864-U-1101A/B",
+                "stream": "S101",
+                "tags": ["T101", "P101", "FI001"]
+            }
+        },
+        {
+            "id": "116-2",
+            "type": "line",
+            "phase": "Liquid",
+            "description": "Condensate to Condensate Stabilizer Coalescer",
+            "linked": {
+                "inletEquipment": "Battery Limit",
+                "outletEquipment": "864-U-1101A/B",
+                "stream": "S102",
+                "tags": ["T102", "P102", "FI002"]
+            }
+        },
+        {
+            "id": "205",
+            "type": "line",
+            "phase": "Liquid",
+            "description": "Condensate from Condensate Stabilizer Coalescer",
+            "linked": {
+                "inletEquipment": "864-U-1101A/B",
+                "outletEquipment": "864-C-1101",
+                "stream": "S111",
+                "tags": ["FI111", "AI100"]
+            }
+        },
+        {
+            "id": "208",
+            "type": "line",
+            "phase": "Vapor",
+            "description": "Cond. Stabilizer Reboiler Feed",
+            "linked": {
+                "inletEquipment": "864-C-1101",
+                "outletEquipment": "864-E-1102A/B",
+                "stream": "S116",
+                "tags": ["TI114", "PI114"]
+            }
+        },
+        {
+            "id": "210",
+            "type": "line",
+            "phase": "Liquid",
+            "description": "Liquid draw to Side Reboiler",
+            "linked": {
+                "inletEquipment": "864-C-1101",
+                "outletEquipment": "864-E-1101A/B",
+                "stream": "S114",
+                "tags": ["TI112"]
+            }
+        },
+        {
+            "id": "211",
+            "type": "line",
+            "phase": "Liquid",
+            "description": "Liquid draw Side Reboiler Return",
+            "linked": {
+                "inletEquipment": "864-E-1101A/B",
+                "outletEquipment": "864-C-1101",
+                "stream": "S115",
+                "tags": ["TI113"]
+            }
+        },
+        {
+            "id": "204",
+            "type": "line",
+            "phase": "Liquid",
+            "description": "Sour Water from Cond. Stabilzer",
+            "linked": {
+                "inletEquipment": "864-D-1101",
+                "outletEquipment": "Sour Water Stripper",
+                "stream": "Water Out",
+                "tags": ["FI103"]
+            }
+        },
+        {
+            "id": "207",
+            "type": "line",
+            "phase": "Vapor",
+            "description": "Top Gas from Cond. Stabilzer",
+            "linked": {
+                "inletEquipment": "864-C-1101",
+                "outletEquipment": "Overhead Comp. Mixer",
+                "stream": "S112",
+                "tags": ["TI111", "PIC111"]
+            }
+        },
+        {
+            "id": "206",
+            "type": "line",
+            "phase": "Liquid",
+            "description": "Condenstate from Cond. Stabilzer Bttm",
+            "linked": {
+                "inletEquipment": "864-C-1101",
+                "outletEquipment": "864-E-1101A/B",
+                "stream": "S117",
+                "tags": ["TI117", "FI117"]
+            }
+        },
+        {
+            "id": "209",
+            "type": "line",
+            "phase": "Liquid",
+            "description": "Cond. Stabilizer Reboiler Return",
+            "linked": {
+                "inletEquipment": "864-E-1102A/B",
+                "outletEquipment": "864-C-1101",
+                "stream": "S116-3",
+                "tags": ["TI116"]
+            }
+        },
+        {
+            "id": "216",
+            "type": "line",
+            "phase": "Vapor",
+            "description": "Gas to Cond. Stabilizer Ovhd Comp. Knock Out Drum",
+            "linked": {
+                "inletEquipment": "864-D-1104A",
+                "outletEquipment": "864-K-1104A",
+                "tags": ["TI104", "PI101", "FI104"]
+            }
+        },
+        {
+            "id": "217",
+            "type": "line",
+            "phase": "Liquid",
+            "description": "Liq to Cond. Stabilizer Ovhd Comp. KOD",
+            "linked": {
+                "inletEquipment": "864-D-1104A",
+                "outletEquipment": "864-G-1104A/B"
+            }
+        },
+        {
+            "id": "214",
+            "type": "line",
+            "phase": "Liquid",
+            "description": "Stabilized Condensate to Export Pipeline",
+            "linked": {
+                "inletEquipment": "864-G-1101A/B/C",
+                "outletEquipment": "Export Pipeline",
+                "stream": "S120",
+                "tags": ["FI102", "AI107", "AI101", "AI102", "AI103"]
+            }
+        },
+        {
+            "id": "213",
+            "type": "line",
+            "phase": "Liquid",
+            "description": "Stabilized Condensate to Product Cooler",
+            "linked": {
+                "inletEquipment": "864-E-1101A/B",
+                "outletEquipment": "864-E-1103",
+                "tags": ["TI118"]
+            }
+        },
+        {
+            "id": "215",
+            "type": "line",
+            "phase": "Vapor",
+            "description": "",
+            "linked": {
+                "inletEquipment": "LP Sour Gas",
+                "outletEquipment": "864-D-1104A"
+            }
+        },
+        {
+            "id": "218",
+            "type": "line",
+            "phase": "Vapor",
+            "description": "",
+            "linked": {
+                "inletEquipment": "864-K-1104A",
+                "outletEquipment": "864-E-1104A",
+                "tags": ["TI105", "PI102"]
+            }
+        },
+        {
+            "id": "219",
+            "type": "line",
+            "phase": "Vapor",
+            "description": "",
+            "linked": {
+                "inletEquipment": "864-E-1104A",
+                "outletEquipment": "864-D-1105A",
+                "tags": ["TI106"]
+            }
+        },
+        {
+            "id": "221",
+            "type": "line",
+            "phase": "Vapor",
+            "description": "",
+            "linked": {
+                "inletEquipment": "864-D-1105A",
+                "outletEquipment": "Sour Gas",
+                "tags": ["PI103"]
+            }
+        },
+        {
+            "id": "223",
+            "type": "line",
+            "phase": "Liquid",
+            "description": "",
+            "linked": {
+                "inletEquipment": "864-D-1105A",
+                "outletEquipment": "864-D-1002"
+            }
+        },
+        {
+            "id": "226",
+            "type": "line",
+            "phase": "Vapor",
+            "description": "",
+            "linked": {
+                "inletEquipment": "864-D-1105A/B",
+                "outletEquipment": "854-D-1001"
+            }
+        },
+        {
+            "id": "228",
+            "type": "line",
+            "phase": "Liquid",
+            "description": "",
+            "linked": {
+                "inletEquipment": "864-D-1105A",
+                "outletEquipment": "864-D-1002"
+            }
+        },
+        {
+            "id": "234",
+            "type": "line",
+            "phase": "Liquid",
+            "description": "",
+            "linked": {
+                "inletEquipment": "864-D-1002",
+                "outletEquipment": "864-D-1104A"
+            }
+        },
+        {
+            "id": "235",
+            "type": "line",
+            "phase": "Liquid",
+            "description": "Stabilized Condensate from Product Cooler",
+            "linked": {
+                "inletEquipment": "864-E-1103",
+                "outletEquipment": "864-G-1101A/B/C",
+                "tags": ["TI103"]
+            }
+        },
+        {
+            "id": "MP In",
+            "type": "line",
+            "phase": "Steam",
+            "description": "",
+            "linked": {
+                "tags": ["TI101", "FI101"]
+            }
+        },
+        {
+            "id": "MP Out",
+            "type": "line",
+            "phase": "Steam",
+            "description": "",
+            "linked": {
+                "tags": ["TI102"]
+            }
+        },
+        {
+            "id": "918",
+            "type": "line",
+            "phase": "Liquid",
+            "description": "",
+            "linked": {
+                "tags": ["AI104", "AI105", "AI106"]
+            }
+        },
+        {
+            "id": "HE102",
+            "type": "block",
+            "blockType": "Heater",
+            "rootNode": "demo.Model.DT_Mirroring.Blocks",
+            "description": "Reboiler Heater, Duty: Reb Duty",
+            "linked": {
+                "inletStreams": ["S116-1"],
+                "outletStreams": ["S116-2"],
+                "equipment": ["864-E-1102A/B"]
+            }
+        },
+        {
+            "id": "V-102",
+            "type": "block",
+            "blockType": "Separator",
+            "rootNode": "demo.Model.DT_Mirroring.Blocks",
+            "description": "2-phase separator",
+            "linked": {
+                "inletStreams": ["S116-2"],
+                "outletStreams": ["S116-3", "S117"],
+                "equipment": ["864-U-1101A/B"]
+            }
+        },
+        {
+            "id": "T101-1",
+            "type": "block",
+            "blockType": "Absorber / Tower",
+            "rootNode": "demo.Model.DT_Mirroring.Blocks",
+            "description": "7 stages",
+            "linked": {
+                "inletStreams": ["S111", "Vap Out from T102"],
+                "outletStreams": ["S112", "PA Draw", "Water Out"],
+                "equipment": ["864-C-1101"]
+            }
+        },
+        {
+            "id": "T101-2",
+            "type": "block",
+            "blockType": "Absorber / Tower",
+            "rootNode": "demo.Model.DT_Mirroring.Blocks",
+            "description": "9 stages",
+            "linked": {
+                "inletStreams": ["PA return", "Boiled Up"],
+                "outletStreams": ["S116", "Vap Out from T102"],
+                "equipment": ["864-C-1101"]
+            }
+        },
+        {
+            "id": "HE101",
+            "type": "block",
+            "blockType": "Heat Exchanger",
+            "rootNode": "demo.Model.DT_Mirroring.Blocks",
+            "description": "UA = 804796 Btu/F-hr",
+            "linked": {
+                "hotStreamIn": "S117",
+                "hotStreamOut": "S118",
+                "coldStreamIn": "S114",
+                "coldStreamOut": "S115",
+                "equipment": ["864-E-1101A/B"]
+            }
+        },
+        {
+            "id": "V101",
+            "type": "block",
+            "blockType": "3-Phase Separator",
+            "rootNode": "demo.Model.DT_Mirroring.Blocks",
+            "linked": {
+                "inletStreams": ["S101", "S102"],
+                "outletStreams": ["off gas", "S111", "S105"]
+            }
+        },
+        {
+            "id": "Prod Cooler",
+            "type": "block",
+            "blockType": "Cooler",
+            "rootNode": "demo.Model.DT_Mirroring.Blocks",
+            "description": "Final product stream",
+            "linked": {
+                "inletStreams": ["S118"],
+                "outletStreams": ["S119"],
+                "equipment": ["864-E-1103"]
+            }
+        },
     {
         "id": "S101",
         "type": "stream",
         "streamType": "Material",
-        "from": "",
-        "to": "V101"
+        "linked": {
+            "inletBlock": "V101",
+            "outletBlock": null,
+            "line": "116"
+        },
+        "rootNode": "demo.Model.DT_Mirroring.Streams"
     },
     {
         "id": "S102",
         "type": "stream",
         "streamType": "Material",
-        "from": "",
-        "to": "V101"
+        "linked": {
+            "inletBlock": "V101",
+            "outletBlock": null,
+            "line": "116-2"
+        },
+        "rootNode": "demo.Model.DT_Mirroring.Streams"
     },
     {
         "id": "S105",
         "type": "stream",
         "streamType": "Material",
-        "from": "V101",
-        "to": ""
+        "linked": {
+            "inletBlock": null,
+            "outletBlock": "V101",
+            "line": null
+        },
+        "rootNode": "demo.Model.DT_Mirroring.Streams"
     },
     {
         "id": "off gas",
         "type": "stream",
         "streamType": "Material",
-        "from": "V101",
-        "to": ""
+        "linked": {
+            "inletBlock": null,
+            "outletBlock": "V101",
+            "line": null
+        },
+        "rootNode": "demo.Model.DT_Mirroring.Streams"
     },
     {
         "id": "S111",
         "type": "stream",
         "streamType": "Material",
-        "from": "V101",
-        "to": "T101-1"
+        "linked": {
+            "inletBlock": "T101-1",
+            "outletBlock": "V101",
+            "line": "205"
+        },
+        "rootNode": "demo.Model.DT_Mirroring.Streams"
     },
     {
         "id": "S112",
         "type": "stream",
         "streamType": "Material",
-        "from": "T101-1",
-        "to": ""
+        "linked": {
+            "inletBlock": null,
+            "outletBlock": "T101-1",
+            "line": "207"
+        },
+        "rootNode": "demo.Model.DT_Mirroring.Streams"
     },
     {
         "id": "S113",
         "type": "stream",
         "streamType": "Material",
-        "from": "",
-        "to": ""
+        "linked": {
+            "inletBlock": null,
+            "outletBlock": null,
+            "line": null
+        },
+        "rootNode": "demo.Model.DT_Mirroring.Streams"
     },
     {
         "id": "S114",
         "type": "stream",
         "streamType": "Material",
-        "from": "T101-1",
-        "to": "HE101 (tube)"
+        "linked": {
+            "inletBlock": "HE101",
+            "outletBlock": null,
+            "line": "210"
+        },
+        "rootNode": "demo.Model.DT_Mirroring.Streams"
     },
     {
         "id": "S115",
         "type": "stream",
         "streamType": "Material",
-        "from": "HE101 (tube)",
-        "to": "RCY-4"
+        "linked": {
+            "inletBlock": null,
+            "outletBlock": "HE101",
+            "line": "211"
+        },
+        "rootNode": "demo.Model.DT_Mirroring.Streams"
     },
     {
         "id": "PA Return to T102",
         "type": "stream",
         "streamType": "Material",
-        "from": "RCY-4",
-        "to": "T101-2"
+        "linked": {
+            "inletBlock": null,
+            "outletBlock": null,
+            "line": null
+        },
+        "rootNode": "demo.Model.DT_Mirroring.Streams"
     },
     {
         "id": "S116-1",
         "type": "stream",
         "streamType": "Material",
-        "from": "T101-2",
-        "to": "HE102"
+        "linked": {
+            "inletBlock": "HE102",
+            "outletBlock": null,
+            "line": null
+        },
+        "rootNode": "demo.Model.DT_Mirroring.Streams"
     },
     {
         "id": "S116-2",
         "type": "stream",
         "streamType": "Material",
-        "from": "HE102",
-        "to": "V-102"
+        "linked": {
+            "inletBlock": "V-102",
+            "outletBlock": "HE102",
+            "line": null
+        },
+        "rootNode": "demo.Model.DT_Mirroring.Streams"
     },
     {
         "id": "S116-3",
         "type": "stream",
         "streamType": "Material",
-        "from": "V-102",
-        "to": "RCY-1"
+        "linked": {
+            "inletBlock": null,
+            "outletBlock": "V-102",
+            "line": "209"
+        },
+        "rootNode": "demo.Model.DT_Mirroring.Streams"
     },
     {
         "id": "Boiled Up",
         "type": "stream",
         "streamType": "Material",
-        "from": "RCY-1",
-        "to": ""
+        "linked": {
+            "inletBlock": "T101-2",
+            "outletBlock": null,
+            "line": null
+        },
+        "rootNode": "demo.Model.DT_Mirroring.Streams"
     },
     {
         "id": "S117",
         "type": "stream",
         "streamType": "Material",
-        "from": "V-102",
-        "to": "HE101 (shell)"
+        "linked": {
+            "inletBlock": "HE101",
+            "outletBlock": "V-102",
+            "line": "206"
+        },
+        "rootNode": "demo.Model.DT_Mirroring.Streams"
     },
     {
         "id": "S118",
         "type": "stream",
         "streamType": "Material",
-        "from": "HE101 (shell)",
-        "to": "HE104"
+        "linked": {
+            "inletBlock": "Prod Cooler",
+            "outletBlock": "HE101",
+            "line": "213"
+        },
+        "rootNode": "demo.Model.DT_Mirroring.Streams"
     },
     {
         "id": "S119",
         "type": "stream",
         "streamType": "Material",
-        "from": "HE104",
-        "to": ""
+        "linked": {
+            "inletBlock": null,
+            "outletBlock": "Prod Cooler",
+            "line": "235"
+        },
+        "rootNode": "demo.Model.DT_Mirroring.Streams"
     },
     {
         "id": "S120",
         "type": "stream",
         "streamType": "Material",
-        "from": "HE104",
-        "to": "Export Pipeline"
+        "linked": {
+            "inletBlock": null,
+            "outletBlock": null,
+            "line": "214"
+        },
+        "rootNode": "demo.Model.DT_Mirroring.Streams"
     },
     {
         "id": "HP Steam",
         "type": "stream",
         "streamType": "Utility",
-        "from": "",
-        "to": "HE102"
+        "linked": {
+            "inletBlock": null,
+            "outletBlock": null,
+            "line": null
+        },
+        "rootNode": "demo.Model.DT_Mirroring.Streams"
     },
     {
         "id": "Water Out",
         "type": "stream",
         "streamType": "Material",
-        "from": "T101-1",
-        "to": ""
-    }
-]
-
-export const equipmentNodes: EquipmentNode[] = [
-    {
-        id: '864-U-1101A/B',
-        type: 'equipment',
-        modelType: 'Vessel',
-        equipmentId: '864-U-1101A/B',
-        pfd: 'BA-344715',
-        pid: 'A',
-        description: 'Condensate Stabilizer Coalescer',
-        blocks: ['V-102']
+        "linked": {
+            "inletBlock": null,
+            "outletBlock": "T101-1",
+            "line": "204"
+        },
+        "rootNode": "demo.Model.DT_Mirroring.Streams"
     },
     {
-        id: '864-C-1101',
-        type: 'equipment',
-        modelType: 'Tray Column',
-        equipmentId: '864-C-1101',
-        capacity: '-',
-        material: 'CS+SS (예상)',
-        temp: '50–150',
-        pressure: '~8.5 / ~123.3',
-        pfd: 'BA-344715',
-        pid: 'A',
-        description: 'Condensate Stabilizer Column',
-        blocks: ['T101-1', 'T101-2']
-    },
-    {
-        id: '864-D-1101',
-        type: 'equipment',
-        modelType: 'Vessel',
-        equipmentId: '864-D-1101',
-        pfd: 'BA-344715',
-        pid: 'A',
-        description: 'Water Side Draw-Off Drum'
-    },
-    {
-        id: '864-E-1102A/B',
-        type: 'equipment',
-        modelType: 'Shell & Tube Exchanger',
-        equipmentId: '864-E-1102A/B',
-        material: 'CS',
-        temp: '160–180',
-        pressure: '~9 / ~130.5',
-        pfd: 'BA-344715',
-        pid: 'A',
-        description: 'Stabilizer Reboiler',
-        blocks: ['HE102']
-    },
-    {
-        id: '864-E-1103',
-        type: 'equipment',
-        modelType: 'Air Fin Cooler',
-        equipmentId: '864-E-1103',
-        material: 'CS',
-        temp: '~40',
-        pressure: '~8 / ~116.0',
-        pfd: 'BA-344716',
-        pid: 'B',
-        description: 'Product Cooler',
-        blocks: ['Prod Cooler']
-    },
-    {
-        id: '864-E-1101A/B',
-        type: 'equipment',
-        modelType: 'Shell & Tube Exchanger',
-        equipmentId: '864-E-1101A/B',
-        capacity: '28.3*1.16 MMBTU/HR',
-        material: 'CS',
-        pfd: 'BA-344716',
-        pid: 'B',
-        description: 'Condensate Stabilizer Side Reboiler',
-        blocks: ['HE101']
-    },
-    {
-        id: '864-D-1104A',
-        type: 'equipment',
-        modelType: 'Horizontal Drum',
-        equipmentId: '864-D-1104A',
-        material: 'CS',
-        temp: '40–60',
-        pressure: '~8 / ~116.0',
-        pfd: 'BA-344717',
-        pid: 'C',
-        description: 'Compressor Suction KO Drum'
-    },
-    {
-        id: '864-K-1104A',
-        type: 'equipment',
-        modelType: 'Centrifugal Compressor',
-        equipmentId: '864-K-1104A',
-        capacity: '8000 Nm3/h (예상)',
-        material: 'Alloy Steel',
-        temp: '50–80',
-        pressure: '9–12 / 130.5–174.0',
-        pfd: 'BA-344717',
-        pid: 'C',
-        description: 'Condensate Stabilizer O/H Compressor A'
-    },
-    {
-        id: '864-E-1104A',
-        type: 'equipment',
-        modelType: 'Air Fin Cooler',
-        equipmentId: '864-E-1104A',
-        pfd: 'BA-344717',
-        pid: 'C',
-        description: 'Compressor Discharge Cooler'
-    },
-    {
-        id: '864-D-1105A',
-        type: 'equipment',
-        modelType: 'Horizontal Drum',
-        equipmentId: '864-D-1105A',
-        material: 'CS',
-        temp: '60–80',
-        pressure: '~10 / ~145.0',
-        pfd: 'BA-344717',
-        pid: 'C',
-        description: 'Compressor Discharge KO Drum'
-    },
-    {
-        id: '864-G-1101A/B',
-        type: 'equipment',
-        modelType: 'Centrifugal Pump',
-        equipmentId: '864-G-1101A/B',
-        material: 'SS',
-        temp: '~50',
-        pressure: '~10 / ~145.0',
-        pfd: 'BA-344716',
-        pid: 'B',
-        description: 'Condensate Product Pump'
-    },
-    {
-        id: '864-G-1104A/B',
-        type: 'equipment',
-        modelType: 'Centrifugal Pump',
-        equipmentId: '864-G-1104A/B',
-        pfd: 'BA-344717',
-        pid: 'C',
-        description: 'Compressor Condensate Stream Pumps'
-    }
-];
-
-export const blockNodes: BlockNode[] = [
-    {
-        id: 'HE102',
-        type: 'block',
-        blockType: 'Heater',
-        inletIds: ['S116-1'],
-        outletIds: ['S116-2'],
-        remarks: 'Reboiler Heater, Duty: Reb Duty'
-    },
-    {
-        id: 'V-102',
-        type: 'block',
-        blockType: 'Separator',
-        inletIds: ['S116-2'],
-        outletIds: ['S116-3', 'S117'],
-        remarks: '2-phase separator'
-    },
-    {
-        id: 'T101-1',
-        type: 'block',
-        blockType: 'Absorber / Tower',
-        inletIds: ['S111', 'Vap Out from T102'],
-        outletIds: ['S112', 'PA Draw', 'Water Out'],
-        remarks: '7 stages'
-    },
-    {
-        id: 'T101-2',
-        type: 'block',
-        blockType: 'Absorber / Tower',
-        inletIds: ['PA return', 'Boiled Up'],
-        outletIds: ['S116', 'Vap Out from T102'],
-        remarks: '9 stages'
-    },
-    {
-        id: 'HE101',
-        type: 'block',
-        blockType: 'Heat Exchanger',
-        inletIds: ['S114', 'S117'],
-        outletIds: ['S115', 'S118'],
-        remarks: 'UA = 804796 Btu/F-hr'
-    },
-    {
-        id: 'V101',
-        type: 'block',
-        blockType: '3-Phase Separator',
-        inletIds: ['S101', 'S102'],
-        outletIds: ['off gas', 'S111', 'S105'],
-    },
-    {
-        id: 'Prod Cooler',
-        type: 'block',
-        blockType: 'Cooler',
-        inletIds: ['S118'],
-        outletIds: ['S119'],
-        remarks: 'Final product stream'
-    }
-];
-
-export const tagNodes: TagNode[] =[
-    {
-        "id": "TI100",
+        "id": "T101",
         "type": "tag",
-        "tagType": "TI",
-        "lineId": "209",
-        "value": 152
+        "tagType": "Temperature",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "116"
+        }
     },
     {
-        "id": "TI103",
+        "id": "P101",
         "type": "tag",
-        "tagType": "TI",
-        "lineId": "235",
-        "value": 196
+        "tagType": "Pressure",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "116"
+        }
     },
     {
-        "id": "TI104",
+        "id": "FI001",
         "type": "tag",
-        "tagType": "TI",
-        "lineId": "216",
-        "value": 58
+        "tagType": "MassFlow",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "116"
+        }
     },
     {
-        "id": "TI105",
+        "id": "T102",
         "type": "tag",
-        "tagType": "TI",
-        "lineId": "218",
-        "value": 59
+        "tagType": "Temperature",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "116-2"
+        }
     },
     {
-        "id": "TI106",
+        "id": "P102",
         "type": "tag",
-        "tagType": "TI",
-        "lineId": "219",
-        "value": 82
+        "tagType": "Pressure",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "116-2"
+        }
     },
     {
-        "id": "TI101",
+        "id": "FI002",
         "type": "tag",
-        "tagType": "TI",
-        "lineId": "MP In",
-        "value": 182
+        "tagType": "MassFlow",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "116-2"
+        }
     },
     {
-        "id": "TI102",
+        "id": "FI111",
         "type": "tag",
-        "tagType": "TI",
-        "lineId": "MP Out",
-        "value": 124
-    },
-    {
-        "id": "PI100",
-        "type": "tag",
-        "tagType": "PI",
-        "lineId": "207",
-        "value": 14
-    },
-    {
-        "id": "PI101",
-        "type": "tag",
-        "tagType": "PI",
-        "lineId": "216",
-        "value": 17
-    },
-    {
-        "id": "PI102",
-        "type": "tag",
-        "tagType": "PI",
-        "lineId": "218",
-        "value": 8
-    },
-    {
-        "id": "PI103",
-        "type": "tag",
-        "tagType": "PI",
-        "lineId": "221",
-        "value": 14
-    },
-    {
-        "id": "FI100",
-        "type": "tag",
-        "tagType": "FI",
-        "lineId": "205",
-        "value": 779
-    },
-    {
-        "id": "FI101",
-        "type": "tag",
-        "tagType": "FI",
-        "lineId": "MP In",
-        "value": 509
-    },
-    {
-        "id": "FI102",
-        "type": "tag",
-        "tagType": "FI",
-        "lineId": "214",
-        "value": 997
-    },
-    {
-        "id": "FI103",
-        "type": "tag",
-        "tagType": "FI",
-        "lineId": "216",
-        "value": 414
+        "tagType": "MassFlow",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "205"
+        }
     },
     {
         "id": "AI100",
         "type": "tag",
-        "tagType": "H2O",
-        "lineId": "205",
-        "value": 2.59
+        "tagType": "AIH2O",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "205"
+        }
     },
     {
-        "id": "AI101",
+        "id": "TI114",
         "type": "tag",
-        "tagType": "H2O",
-        "lineId": "214",
-        "value": 1.16
+        "tagType": "Temperature",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "208"
+        }
     },
     {
-        "id": "AI102",
+        "id": "PI114",
         "type": "tag",
-        "tagType": "H2S",
-        "lineId": "214",
-        "value": 5.66
+        "tagType": "Pressure",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "208"
+        }
     },
     {
-        "id": "AI103",
+        "id": "TI112",
         "type": "tag",
-        "tagType": "RVP",
-        "lineId": "214",
-        "value": 7.81
+        "tagType": "Temperature",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "210"
+        }
+    },
+    {
+        "id": "TI113",
+        "type": "tag",
+        "tagType": "Temperature",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "211"
+        }
+    },
+    {
+        "id": "FI103",
+        "type": "tag",
+        "tagType": "MassFlow",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "204"
+        }
+    },
+    {
+        "id": "FI104",
+        "type": "tag",
+        "tagType": "MassFlow",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "216"
+        }
+    },
+    {
+        "id": "TI111",
+        "type": "tag",
+        "tagType": "Temperature",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "207"
+        }
+    },
+    {
+        "id": "PIC111",
+        "type": "tag",
+        "tagType": "Pressure",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "207"
+        }
+    },
+    {
+        "id": "TI117",
+        "type": "tag",
+        "tagType": "Temperature",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "206"
+        }
+    },
+    {
+        "id": "FI117",
+        "type": "tag",
+        "tagType": "MassFlow",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "206"
+        }
+    },
+    {
+        "id": "TI116",
+        "type": "tag",
+        "tagType": "Temperature",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "209"
+        }
+    },
+    {
+        "id": "TI104",
+        "type": "tag",
+        "tagType": "Temperature",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "216"
+        }
+    },
+    {
+        "id": "PI101",
+        "type": "tag",
+        "tagType": "Pressure",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "216"
+        }
+    },
+    {
+        "id": "TI105",
+        "type": "tag",
+        "tagType": "Temperature",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "218"
+        }
+    },
+    {
+        "id": "PI102",
+        "type": "tag",
+        "tagType": "Pressure",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "218"
+        }
+    },
+    {
+        "id": "TI106",
+        "type": "tag",
+        "tagType": "Temperature",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "219"
+        }
+    },
+    {
+        "id": "PI103",
+        "type": "tag",
+        "tagType": "Pressure",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "221"
+        }
+    },
+    {
+        "id": "TI118",
+        "type": "tag",
+        "tagType": "Temperature",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "213"
+        }
+    },
+    {
+        "id": "TI103",
+        "type": "tag",
+        "tagType": "Temperature",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "235"
+        }
+    },
+    {
+        "id": "TI101",
+        "type": "tag",
+        "tagType": "Temperature",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "MP In"
+        }
+    },
+    {
+        "id": "FI101",
+        "type": "tag",
+        "tagType": "MassFlow",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "MP In"
+        }
+    },
+    {
+        "id": "TI102",
+        "type": "tag",
+        "tagType": "Temperature",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "MP Out"
+        }
     },
     {
         "id": "AI104",
         "type": "tag",
-        "tagType": "H2O",
-        "lineId": "918",
-        "value": 8.95
+        "tagType": "AIH2O",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "918"
+        }
     },
     {
         "id": "AI105",
         "type": "tag",
-        "tagType": "H2S",
-        "lineId": "918",
-        "value": 3.13
+        "tagType": "AIH2S",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "918"
+        }
     },
     {
         "id": "AI106",
         "type": "tag",
-        "tagType": "RVP",
-        "lineId": "918",
-        "value": 2.05
+        "tagType": "AIRVP",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "918"
+        }
+    },
+    {
+        "id": "FI102",
+        "type": "tag",
+        "tagType": "MassFlow",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "214"
+        }
     },
     {
         "id": "AI107",
         "type": "tag",
-        "tagType": "GC",
-        "lineId": "214",
-        "value": 5.94
-    }
-]
+        "tagType": "AIGC",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "214"
+        }
+    },
+    {
+        "id": "AI101",
+        "type": "tag",
+        "tagType": "AIH2O",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "214"
+        }
+    },
+    {
+        "id": "AI102",
+        "type": "tag",
+        "tagType": "AIH2S",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "214"
+        }
+    },
+    {
+        "id": "AI103",
+        "type": "tag",
+        "tagType": "AIRVP",
+        "rootNode": "demo.Plant",
+        "linked": {
+            "line": "214"
+        }
+    },
+    {
+            "id": "HE101 TEMA Sheet",
+            "type": "datasheet",
+            "filename": "HE101 TEMA Sheet",
+            "extension": "pdf",
+            "linked": {
+                "equipment": "864-E-1101A/B"
+            }
+        },
+        {
+            "id": "DS-E1102",
+            "type": "datasheet",
+            "filename": "E-1102 TEMA Sheet",
+            "extension": "pdf",
+            "linked": {
+                "equipment": "864-E-1102A/B"
+            }
+        },
+        {
+            "id": "DS-V1101",
+            "type": "datasheet",
+            "filename": "21-AS-S5211-22 Datasheet",
+            "extension": "pdf",
+            "linked": {
+                "equipment": "864-U-1101A/B"
+            }
+        },
+        {
+            "id": "DS-D1101",
+            "type": "datasheet",
+            "filename": "21-AS-T5231-30 Datasheet",
+            "extension": "pdf",
+            "linked": {
+                "equipment": "864-D-1101"
+            }
+        }
 
-export const graphNodes: GraphNode[] = [
-    ...lineNodes,
-    ...pfdNodes,
-    ...equipmentNodes,
-    ...streamNodes,
-    ...blockNodes,
-    ...tagNodes
-];
+    ];
+
 
 export const imageMap: Record<string, string> = {
     'BA-344715': '/pfd/pfd-a.png',

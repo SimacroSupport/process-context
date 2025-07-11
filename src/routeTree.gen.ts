@@ -9,12 +9,12 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ContextProcessRouteImport } from './routes/process-context.tsx'
+import { Route as ProcessContextRouteImport } from './routes/process-context'
 import { Route as IndexRouteImport } from './routes/index'
 
-const ContextProcessRoute = ContextProcessRouteImport.update({
-  id: '/context-process',
-  path: '/context-process',
+const ProcessContextRoute = ProcessContextRouteImport.update({
+  id: '/process-context',
+  path: '/process-context',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -25,37 +25,37 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/context-process': typeof ContextProcessRoute
+  '/process-context': typeof ProcessContextRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/context-process': typeof ContextProcessRoute
+  '/process-context': typeof ProcessContextRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/context-process': typeof ContextProcessRoute
+  '/process-context': typeof ProcessContextRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/context-process'
+  fullPaths: '/' | '/process-context'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/context-process'
-  id: '__root__' | '/' | '/context-process'
+  to: '/' | '/process-context'
+  id: '__root__' | '/' | '/process-context'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  ContextProcessRoute: typeof ContextProcessRoute
+  ProcessContextRoute: typeof ProcessContextRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/context-process': {
-      id: '/context-process'
-      path: '/context-process'
-      fullPath: '/context-process'
-      preLoaderRoute: typeof ContextProcessRouteImport
+    '/process-context': {
+      id: '/process-context'
+      path: '/process-context'
+      fullPath: '/process-context'
+      preLoaderRoute: typeof ProcessContextRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -70,7 +70,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  ContextProcessRoute: ContextProcessRoute,
+  ProcessContextRoute: ProcessContextRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
