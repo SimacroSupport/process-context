@@ -1,5 +1,5 @@
 import {useState} from "react";
-import { type GraphNode, type BaseNode } from '@/data/processData';
+import type { GraphNode, BaseNode } from '@/types/processTypes.ts';
 import { graphNodes } from '@/data/processData';
 import {colorMap} from "@/utils/colorMap.ts";
 import styles from '../../styles/contextProcess.module.css';

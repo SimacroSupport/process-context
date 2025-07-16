@@ -1,7 +1,7 @@
 import styles from '../../styles/contextProcess.module.css';
 import {colorMap} from "@/utils/colorMap.ts";
 import NodeDetail from './NodeDetail';
-import { type GraphNode } from '@/data/processData';
+import type { GraphNode } from '@/types/processTypes.ts';
 
 function getNodeTitle(type: string): string {
     const nameMap: Record<string, string> = {

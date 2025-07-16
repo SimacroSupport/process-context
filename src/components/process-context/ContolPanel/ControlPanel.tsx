@@ -1,5 +1,5 @@
 import { NodeLegend } from './NodeLegend';
-// import { ViewSelector } from './ViewSelector';
+import { ViewSelector } from './ViewSelector';
 import styles from '@/styles/contextProcess.module.css';
 
 interface ControlPanelProps {
@@ -12,12 +12,12 @@ interface ControlPanelProps {
 export const ControlPanel = ({
                                  filters,
                                  onToggle,
-                                 // viewMode,
-                                 // onChangeViewMode
+                                 viewMode,
+                                 onChangeViewMode
                              }: ControlPanelProps) => {
     return (
         <div className={styles.controlPanel}>
-            {/*<ViewSelector viewMode={viewMode} onChange={onChangeViewMode} />*/}
+            <ViewSelector viewMode={viewMode} onChange={onChangeViewMode} />
             <NodeLegend filters={filters} onToggle={onToggle} />
         </div>
     );

@@ -1,25 +1,14 @@
-import {
-    type GraphLink,
-    type GraphNode,
-} from '../data/processData';
+import type {GraphNode, GraphLink} from "@/types/processTypes.ts";
 
 export function buildGraphLinks(graphNodes: GraphNode[]): GraphLink[] {
     const links: GraphLink[] = [];
     const allNodeIds = new Set(graphNodes.map(node => node.id));
 
     const addLink = (source: string, target: string) => {
-        // const isReversedLinkExists = links.some(link =>
-        //     link.source === target && link.target === source
-        // );
-
-        // 노드가 존재하고, 반대 방향 링크가 없을 때만 추가
         if (allNodeIds.has(target)) {
-        // if (allNodeIds.has(target) && !isReversedLinkExists) {
-            // console.log(source, target)
+
             links.push({ source, target });
         }
-        // links.push({ source, target });
-
     };
 
     graphNodes.forEach(node => {

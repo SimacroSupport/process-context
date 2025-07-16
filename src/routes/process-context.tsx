@@ -1,11 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useRef, useState, useMemo, useCallback } from 'react';
+import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import ForceGraph3D from 'react-force-graph-3d';
 import * as THREE from 'three';
 import SpriteText from 'three-spritetext';
 import NodeDetailPanel from "@/components/process-context/NodeDetailPanel.tsx";
 import { buildGraphLinks } from '../utils/buildGraphLinks';
-import { graphNodes, imageMap, type GraphNode } from '../data/processData';
+import { graphNodes, imageMap } from '../data/processData';
+import type { NodeType, GraphNode } from '@/types/processTypes.ts'
 import { colorMap } from '@/utils/colorMap.ts';
 import {usePdfSpriteCache} from "@/hooks/usePdfSpriteCache.ts";
 import {ControlPanel} from "@/components/process-context/ContolPanel/ControlPanel.tsx";
@@ -45,17 +46,81 @@ function RouteComponent() {
         fg.cameraPosition(newPos, { x: node.x, y: node.y, z: node.z }, 1000);
     }, []);
 
+    const layerYMap: Record<NodeType, number> = {
+        pfd: 150,
+        equipment: 100,
+        block: 50,
+        line: 0,
+        stream: -50,
+        tag: -100,
+        datasheet: -150,
+    };
+
+    const groupedByType = graphNodes.reduce((acc, node) => {
+        if (!acc[node.type]) acc[node.type] = [];
+        acc[node.type].push(node);
+        return acc;
+    }, {} as Record<string, GraphNode[]>);
+
+    const positionedNodes: GraphNode[] = useMemo(() => {
+        return Object.entries(groupedByType).flatMap(([type, nodes]) => {
+            const radius = 100 + nodes.length * 5;
+            const y = layerYMap[type as NodeType] ?? 0;
+
+            return nodes.map(node => {
+                if (viewMode === 'layered') {
+                    const r = Math.sqrt(Math.random()) * radius;
+                    const theta = Math.random() * 2 * Math.PI;
+
+                    const x = r * Math.cos(theta);
+                    const z = r * Math.sin(theta); // z축에 퍼짐
+
+                    return {...node, fx: x, fy: y, fz: z };
+                } else {
+                    return node;
+                }
+            });
+        });
+    }, [viewMode]);
+
     const filteredNodes = useMemo(() => {
-        return graphNodes.filter((node) => filters[node.type]);
+        return positionedNodes.filter((node) => filters[node.type]);
     }, [filters, viewMode]);
 
+
     const filteredLinks = useMemo(() => {
-        return buildGraphLinks(filteredNodes);
-    }, [filteredNodes]);
+        const allLinks = buildGraphLinks(filteredNodes);
+
+        console.log(selectedNode)
+        console.log(allLinks)
+        if (viewMode === 'layered') {
+            if (!selectedNode) return []; // 링크 없음
+            return allLinks.filter(
+                (link) =>
+                    link.source === selectedNode.id ||
+                    link.target === selectedNode.id
+            );
+        }
+
+        return allLinks;
+    }, [filteredNodes, selectedNode, viewMode]);
+
 
     const handleToggle = (type: string) => {
         setFilters(prev => ({ ...prev, [type]: !prev[type] }));
     };
+
+    useEffect(() => {
+        if (viewMode === 'layered' && fgRef.current) {
+            fgRef.current.cameraPosition(
+                { x: 0, y: 0, z: 600 },
+                { x: 0, y: 0, z: 0 },
+                1000
+            );
+        }
+    }, [viewMode]);
+
+
 
     // console.log(filteredLinks)
     return (
@@ -75,22 +140,21 @@ function RouteComponent() {
                 cooldownTicks={viewMode === 'layered' ? 1 : undefined}
                 backgroundColor='black'
                 // linkColor={'rgba(255,0,0,1)'}
-                dagMode={viewMode === 'layered' ? 'td' : undefined}
-                dagLevelDistance={viewMode === 'layered' ? 200 : undefined}
                 nodeAutoColorBy={viewMode === 'layered' ? 'module' : undefined}
                 nodeOpacity={viewMode === 'layered' ? 0.9 : 1}
                 linkDirectionalParticleColor='red'
-                onEngineStop={() => {
+
+                d3ForceInit={(fg: any) => {
                     if (viewMode === 'layered') {
-                        fgRef.current?.zoomToFit(400);
+                        fg.d3Force('collision', THREE.forceCollide((node: any) => Math.cbrt(node.size)));
+                        fg.d3Force('charge')?.strength(-30);
+                        fg.d3Force('center', THREE.forceCenter(0, 0, 0));
+                    } else {
+                        fg.d3Force('charge')?.strength(-120);
+                        fg.d3Force('link')?.distance(100);
                     }
                 }}
-                // d3ForceInit={(fg) => {
-                //     if (viewMode === 'layered') {
-                //         fg.d3Force('collision', THREE.forceCollide((node: any) => Math.cbrt(node.size)));
-                //         fg.d3Force('charge').strength(-15);
-                //     }
-                // }}
+
                 nodeThreeObject={(node: GraphNode) => {
                     if (node.type === 'pfd') {
                         const texture = new THREE.TextureLoader().load(imageMap[node.id]);
@@ -116,7 +180,12 @@ function RouteComponent() {
                     sprite.color = colorMap[node.type] || '#999999';
                     return sprite;
                 }}
-                onNodeClick={(node: GraphNode) => focusNode(node)}
+                onNodeClick={(node: GraphNode) => {
+                    if (viewMode === 'default') {
+                        focusNode(node);  // 카메라 이동
+                    }
+                    setSelectedNode(node);  // 항상 상세 패널 열림
+                }}
                 linkDirectionalParticles={2}
                 linkDirectionalParticleWidth={viewMode === 'layered' ? 0.8 : 1}
                 linkDirectionalParticleSpeed={0.006}
