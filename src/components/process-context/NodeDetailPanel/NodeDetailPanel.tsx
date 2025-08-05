@@ -1,6 +1,6 @@
-import styles from '../../styles/contextProcess.module.css';
+import styles from '../../../styles/contextProcess.module.css';
 import {colorMap} from "@/utils/colorMap.ts";
-import NodeDetail from './NodeDetail';
+import NodeDetail from './NodeDetail.tsx';
 import type { GraphNode } from '@/types/processTypes.ts';
 
 function getNodeTitle(type: string): string {

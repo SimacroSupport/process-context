@@ -1,8 +1,8 @@
 import {useState} from "react";
 import type { GraphNode, BaseNode } from '@/types/processTypes.ts';
-import { graphNodes } from '@/data/processData';
+import { graphNodes } from '@/data/processData.ts';
 import {colorMap} from "@/utils/colorMap.ts";
-import styles from '../../styles/contextProcess.module.css';
+import styles from '../../../styles/contextProcess.module.css';
 import PdfOverlay from "@/components/PdfOverlay.tsx";
 
 interface Props {
