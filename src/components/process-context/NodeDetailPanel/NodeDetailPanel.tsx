@@ -21,7 +21,7 @@ interface Props {
     onFocus: (node: GraphNode) => void;
 }
 
-export default function NodeDetailPanel({ node, onClose, onFocus }: Props) {
+export function NodeDetailPanel({ node, onClose, onFocus }: Props) {
     return (
         <div className={styles.panel}>
             <div className={styles.panelHeader}>

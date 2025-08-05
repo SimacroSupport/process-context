@@ -352,8 +352,7 @@ export const graphNodes: GraphNode[] = [
             "linked": {
                 "inletEquipment": "864-C-1101",
                 "outletEquipment": "864-E-1101A/B",
-                "stream": "S114",
-                "tags": ["TI112"]
+                "stream": "S114"
             }
         },
         {
@@ -364,8 +363,7 @@ export const graphNodes: GraphNode[] = [
             "linked": {
                 "inletEquipment": "864-E-1101A/B",
                 "outletEquipment": "864-C-1101",
-                "stream": "S115",
-                "tags": ["TI113"]
+                "stream": "S115"
             }
         },
         {
@@ -588,8 +586,8 @@ export const graphNodes: GraphNode[] = [
             "rootNode": "demo.Model.DT_Mirroring.Blocks",
             "description": "Reboiler Heater, Duty: Reb Duty",
             "linked": {
-                "inletStreams": ["S116-1"],
-                "outletStreams": ["S116-2"],
+                "hotStreamIn": "S116-1",
+                "hotStreamOut": "S116-2",
                 "equipment": ["864-E-1102A/B"]
             }
         },
@@ -981,7 +979,7 @@ export const graphNodes: GraphNode[] = [
         "tagType": "Temperature",
         "rootNode": "demo.Plant",
         "linked": {
-            "line": "210"
+            "equipment": "864-C-1101"
         }
     },
     {
@@ -990,7 +988,7 @@ export const graphNodes: GraphNode[] = [
         "tagType": "Temperature",
         "rootNode": "demo.Plant",
         "linked": {
-            "line": "211"
+            "equipment": "864-C-1101"
         }
     },
     {
@@ -1017,7 +1015,7 @@ export const graphNodes: GraphNode[] = [
         "tagType": "Temperature",
         "rootNode": "demo.Plant",
         "linked": {
-            "line": "207"
+            "equipment": "864-C-1101"
         }
     },
     {
@@ -1062,7 +1060,7 @@ export const graphNodes: GraphNode[] = [
         "tagType": "Temperature",
         "rootNode": "demo.Plant",
         "linked": {
-            "line": "216"
+            "equipment": "864-C-1101"
         }
     },
     {
