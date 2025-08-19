@@ -5,6 +5,7 @@ export const graphNodes: GraphNode[] = [
     {
         "id": "BA-344715",
         "type": "pfd",
+        "file": '/pfd/pfd-a.png',
         "linked": {
             "equipments": [
                 "864-U-1101A/B",
@@ -17,6 +18,7 @@ export const graphNodes: GraphNode[] = [
         {
             "id": "BA-344716",
             "type": "pfd",
+            "file": '/pfd/pfd-a.png',
             "linked": {
                 "equipments": [
                     "864-E-1103",
@@ -28,6 +30,7 @@ export const graphNodes: GraphNode[] = [
         {
             "id": "BA-344717",
             "type": "pfd",
+            "file": '/pfd/pfd-a.png',
             "linked": {
                 "equipments": [
                     "864-D-1104A",
@@ -45,7 +48,7 @@ export const graphNodes: GraphNode[] = [
             "description": "Condensate Stabilizer Coalescer",
             "linked": {
                 "pfd": "BA-344715",
-                "pnid": "A",
+                "pnid": "AD1821-1",
                 "blocks": [
                     "V-102"
                 ],
@@ -197,6 +200,7 @@ export const graphNodes: GraphNode[] = [
                 "pfd": "BA-344717",
                 "pnid": "C",
                 "inletLines": [
+                    "215",
                     "234"
                 ],
                 "outletLines": [
@@ -1262,10 +1266,3 @@ export const graphNodes: GraphNode[] = [
             }
         }
     ];
-
-
-export const imageMap: Record<string, string> = {
-    'BA-344715': '/pfd/pfd-a.png',
-    'BA-344716': '/pfd/pfd-a.png',
-    'BA-344717': '/pfd/pfd-a.png',
-};

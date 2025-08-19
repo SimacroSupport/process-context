@@ -22,6 +22,7 @@ export interface BaseNode {
 
 export interface PfdNode extends BaseNode {
     type: 'pfd';
+    file: string;
     linked: { equipments: string[] };
 }
 
